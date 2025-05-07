@@ -13,8 +13,7 @@
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^5.1.0",
-    "puppeteer": "^24.8.1",
-    "vercel": "^37.4.0"
+    "puppeteer": "^24.8.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"
