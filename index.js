@@ -52,7 +52,7 @@ async function run() {
         });
       } catch (error) {
         console.error("Screenshot error:", error.message);
-        res.status(500).json({ success: false, error: error });
+        res.status(500).json({ success: false, error: error, url: url });
       }
     });
   } finally {
