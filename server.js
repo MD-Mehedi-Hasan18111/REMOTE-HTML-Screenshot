@@ -1,21 +1,20 @@
-const express = require("express");
 const puppeteer = require("puppeteer");
+const express = require("express");
+const cors = require("cors");
 
 const app = express();
-const PORT = 5000;
+const port = 5000;
 
+// Middleware
+app.use(cors());
 app.use(express.json());
-
-// Log incoming requests to ensure proper parsing
-app.use((req, res, next) => {
-  console.log("Incoming request:", req.method, req.url);
-  console.log("Request body:", req.body);
-  next();
-});
-
 // Run server and database connection
 async function run() {
   try {
+    app.listen(port, () => {
+      console.log(`Server running on port: ${port}`);
+    });
+
     // POST route to capture screenshot from the given URL
     app.post("/screenshot", async (req, res) => {
       const { url } = req.body;
@@ -62,11 +61,6 @@ async function run() {
 }
 
 run().catch(console.dir);
-
-// Start the server
-app.listen(PORT, () => {
-  console.log(`Server is running at port:${PORT}`);
-});
 
 // Default route
 app.get("/", (req, res) => {
