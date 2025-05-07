@@ -1,14 +1,19 @@
-const puppeteer = require("puppeteer");
+const puppeteer = require("puppeteer-core");
+const chromium = require("@sparticuz/chromium-min");
 const express = require("express");
 const cors = require("cors");
 
 const app = express();
-const port = 5000;
+const port = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors());
 app.use(express.json());
-// Run server and database connection
+
+// Configure Chromium
+chromium.setGraphicsMode = false; // Disable GPU in serverless environment
+
+// Run server
 async function run() {
   try {
     app.listen(port, () => {
@@ -26,37 +31,58 @@ async function run() {
           .json({ success: false, error: "Please provide a valid URL." });
       }
 
+      let browser;
       try {
-        // Launch Puppeteer to take a screenshot
-        const browser = await puppeteer.launch();
+        // Launch Puppeteer with Chromium
+        browser = await puppeteer.launch({
+          args: chromium.args,
+          executablePath: await chromium.executablePath(),
+          headless: chromium.headless,
+          ignoreHTTPSErrors: true,
+        });
+
         const page = await browser.newPage();
 
+        // Set a reasonable timeout for page operations
+        page.setDefaultNavigationTimeout(15000);
+        page.setDefaultTimeout(10000);
+
         // Open the URL and wait for the page to load
-        await page.goto(url, { waitUntil: "networkidle2" });
+        await page.goto(url, {
+          waitUntil: "networkidle2",
+          timeout: 15000,
+        });
 
         // Capture the screenshot as a PNG buffer
         const screenshotBuffer = await page.screenshot({
           type: "png",
           fullPage: true,
+          encoding: "base64", // Directly get base64 output
         });
-        await browser.close();
-
-        // Convert the buffer to a base64-encoded string
-        const base64Image = screenshotBuffer.toString("base64");
 
         // Respond with the base64 image string
         res.status(200).json({
           success: true,
           contentType: "image/png",
-          base64: base64Image,
+          base64: screenshotBuffer,
         });
       } catch (error) {
-        console.error("Screenshot error:", error.message);
-        res.status(500).json({ success: false, error: error, url: url });
+        console.error("Screenshot error:", error);
+        res.status(500).json({
+          success: false,
+          error: error.message,
+          url: url,
+        });
+      } finally {
+        if (browser) {
+          await browser
+            .close()
+            .catch((e) => console.error("Browser close error:", e));
+        }
       }
     });
-  } finally {
-    // await client.close();
+  } catch (error) {
+    console.error("Server startup error:", error);
   }
 }
 
@@ -66,3 +92,6 @@ run().catch(console.dir);
 app.get("/", (req, res) => {
   res.send("Server Running...");
 });
+
+// Export for Vercel
+module.exports = app;
